@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <title>CRM Config Dashboard (Hybrid)</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    /* Tab System */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* JS Injected Classes Compatibility */
+    .switch-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--blue);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .switch-control input {
+      display: none;
+    }
+
+    .switch-slider {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      border-radius: 999px;
+      background: #CBD5E1;
+      transition: var(--transition);
+    }
+
+    .switch-slider::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+      transition: var(--transition);
+    }
+
+    .switch-control input:checked+.switch-slider {
+      background: var(--blue);
+    }
+
+    .switch-control input:checked+.switch-slider::after {
+      transform: translateX(20px);
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .icon-btn,
+    .group-action-btn {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 6px;
+      border-radius: 6px;
+      transition: var(--transition);
+      color: var(--muted);
+    }
+
+    .icon-btn:hover,
+    .group-action-btn:hover {
+      background: #F1F5F9;
+      color: var(--ink);
+    }
+
+    .icon-btn.delete,
+    .group-action-btn.delete {
+      color: var(--danger);
+    }
+
+    .icon-btn.delete:hover,
+    .group-action-btn.delete:hover {
+      background: var(--danger-light);
+      color: #DC2626;
+    }
+
+    .icon-btn.edit,
+    .group-action-btn.edit {
+      color: var(--blue);
+    }
+
+    .icon-btn.edit:hover,
+    .group-action-btn.edit:hover {
+      background: var(--blue-light);
+    }
+
+    .highlight-row {
+      background: var(--blue-light) !important;
+    }
+
+    .crm-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      font-weight: 500;
+      font-style: italic;
+    }
+
+    /* Modal override */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      padding: 32px;
+      border-radius: 20px;
+      min-width: 480px;
+      max-width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--line);
+    }
+
+    /* Pre box for call logs */
+    .pre-box {
+      max-height: 420px;
+      overflow: auto;
+      padding: 16px;
+      background: #0F172A;
+      color: #E2E8F0;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    /* Filters Grid */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 28px;
+      cursor: pointer;
+    }
+
+    .checkbox-row input {
+      width: auto;
+    }
+
+    /* Group member transfer list */
+    .group-transfer-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+      margin-top: 24px;
+    }
+
+    .group-list-box {
+      height: 320px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .group-member-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .group-member-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      transition: var(--transition);
+    }
+
+    .group-member-item:hover {
+      background: #F8FAFC;
+    }
+
+    .group-member-item.selected {
+      background: var(--blue-light);
+      color: var(--blue-dark);
+      border-color: transparent;
+    }
+
+    .group-transfer-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .pagination:empty {
+      display: none;
+    }
+
+    .pagination button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      min-height: 38px;
+      padding: 0 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: var(--transition);
+    }
+
+    .pagination button:hover:not(:disabled) {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+
+    .pagination button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+
+    .pagination .page-indicator {
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .multi-select {
+      position: relative;
+    }
+
+    .multi-select-trigger {
+      width: 100%;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .multi-select-trigger:hover,
+    .multi-select.open .multi-select-trigger {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-light);
+    }
+
+    .multi-select-placeholder {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .multi-select-arrow {
+      color: var(--muted);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .multi-select.open .multi-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .multi-select-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 1002;
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: var(--shadow-lg);
+      padding: 8px;
+    }
+
+    .multi-select.open .multi-select-menu {
+      display: block;
+    }
+
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .multi-select-option:hover {
+      background: #F8FAFC;
+    }
+
+    .multi-select-option input {
+      width: auto;
+      margin: 0;
+    }
+
+    .selected-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      min-height: 28px;
+    }
+
+    .selected-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--blue-light);
+      color: var(--blue-dark);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .selected-tag button {
+      border: 0;
+      background: transparent;
+      color: currentColor;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      font-weight: 800;
+    }
+
+    .app-toast,
+    .app-confirm {
+      border-radius: 14px !important;
+      font-family: inherit !important;
+      box-shadow: var(--shadow-lg) !important;
+    }
+
+    .app-toast {
+      padding: 12px 14px !important;
+    }
+
+    .app-confirm {
+      padding: 24px !important;
+    }
+
+    .app-confirm .swal2-title {
+      font-size: 20px !important;
+      line-height: 1.25 !important;
+      color: var(--ink) !important;
+    }
+
+    .app-confirm .swal2-html-container {
+      font-size: 14px !important;
+      color: var(--muted) !important;
+      margin-top: 10px !important;
+    }
+
+    .app-confirm-button,
+    .app-cancel-button {
+      min-width: 96px !important;
+      min-height: 40px !important;
+      border-radius: 8px !important;
+      font-weight: 700 !important;
+      box-shadow: none !important;
+    }
+
+    .toast-stack {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast-item {
+      width: 360px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow-lg);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+      pointer-events: auto;
+      animation: toastIn .18s ease-out;
+    }
+
+    .toast-item.success {
+      border-color: #BBF7D0;
+    }
+
+    .toast-item.error {
+      border-color: #FECACA;
+    }
+
+    .toast-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .toast-item.success .toast-icon {
+      background: #22C55E;
+    }
+
+    .toast-item.error .toast-icon {
+      background: #EF4444;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Form group margin */
+    .form-group {
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">CD</div>
+        <div>
+          <strong>CRM Dashboard</strong>
+          <span>Setup (Hybrid Mode)</span>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-item tab-btn active" id="btn-voiceConfig" onclick="switchTab(event, 'voiceConfig')">
+          <span class="nav-icon">🎧</span>Cấu hình Kịch bản
+        </button>
+        <button class="nav-item tab-btn" id="btn-extensions" onclick="switchTab(event, 'extensions')">
+          <span class="nav-icon">📞</span>Máy lẻ
+        </button>
+        <button class="nav-item tab-btn" id="btn-queues" onclick="switchTab(event, 'queues')">
+          <span class="nav-icon">👥</span>Nhóm máy lẻ
+        </button>
+        <button class="nav-item tab-btn" id="btn-sounds" onclick="switchTab(event, 'sounds')">
+          <span class="nav-icon">🔊</span>Âm thanh (Sounds)
+        </button>
+        <button class="nav-item tab-btn" id="btn-callLogs" onclick="switchTab(event, 'callLogs')">
+          <span class="nav-icon">📋</span>Call Logs
+        </button>
+      </nav>
+      <div class="security-note">
+        <p>Vui lòng bảo mật API Key của bạn. Không chia sẻ cho người không có thẩm quyền.</p>
+      </div>
+    </aside>
+
+    <main>
+      <!-- Topbar -->
+      <div class="topbar" style="margin-bottom: 32px;">
+        <h1>CRM Setup</h1>
+        <div class="topbar-actions">
+          <input type="password" id="apiKey" placeholder="Nhập API Key để test" style="width: 280px;">
+          <button onclick="saveApiKey()" class="button button-primary">Lưu Key</button>
+        </div>
+      </div>
+
+      <!-- Voice Config Tab -->
+      <div id="voiceConfig" class="tab-content active">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Quản lý kịch bản</div>
+            <h2>Thiết lập luồng gọi linh hoạt</h2>
+            <p>Tạo và quản lý các kịch bản gọi vào/gọi ra (dialplans). Hỗ trợ điều hướng cuộc gọi đến máy lẻ, phát âm
+              thanh, chuyển hướng ra ngoài hoặc gửi API.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-heading">
+            <div>
+              <h3 id="dialplanTotal">Danh sách (0)</h3>
+            </div>
+            <div class="actions">
+              <input type="text" id="dialplanSearch" placeholder="Tìm kiếm" oninput="loadDialplans(1)"
+                style="width: 250px;">
+              <button class="button button-primary" onclick="openDialplanModal()">+ Thêm kịch bản</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="dialplansTable" class="history-table">
+              <thead>
+                <tr>
+                  <th>Tên kịch bản</th>
+                  <th>Cập nhật lần</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="dialplanPagination"></div>
+        </div>
+      </div>
+
+      <!-- Extensions Tab -->
+      <div id="extensions" class="tab-content">
+        <div id="extensionListView" class="card">
+          <div class="card-heading">
+            <div>
+              <div class="eyebrow">Quản lý máy lẻ</div>
+              <h3 id="extensionTotal">Danh sách máy lẻ (0)</h3>
+            </div>
+            <div class="actions">
+              <input type="text" id="extensionSearch" placeholder="Tìm kiếm máy lẻ" oninput="renderExtensionsTable(1)"
+                style="width: 250px;">
+              <button class="button button-primary" onclick="openExtensionCreateView()">+ Đăng ký máy lẻ</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="history-table" id="extensionsTable">
+              <thead>
+                <tr>
+                  <th>Số máy lẻ</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="crm-empty" colspan="2">Không có dữ liệu</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="extensionPagination"></div>
+        </div>
+
+        <div id="extensionCreateView" class="card" style="display:none;">
+          <div class="card-heading">
+            <h3>Thêm máy lẻ mới</h3>
+          </div>
+          <div class="editor-grid" style="max-width: 500px;">
+            <div class="form-group">
+              <label>Số máy lẻ <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="extensionNumberInput" placeholder="Điền số máy lẻ">
+            </div>
+            <div class="actions" style="margin-top: 16px;">
+              <button class="button button-secondary"
+                onclick="switchTab({currentTarget: document.getElementById('btn-extensions')}, 'extensions')">Hủy
+                bỏ</button>
+              <button class="button button-primary" onclick="saveExtension()">Lưu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queues Tab -->
+      <div id="queues" class="tab-content">
+        <div id="queueListView" class="card">
+          <div class="card-heading">
+            <div>
+              <div class="eyebrow">Quản lý nhóm máy lẻ</div>
+              <h3 id="queueTotal">Danh sách nhóm máy lẻ (0)</h3>
+            </div>
+            <div class="actions">
+              <input type="text" id="queueSearch" placeholder="Tìm kiếm nhóm" onkeydown="if(event.key === 'Enter') loadQueues(1)"
+                style="width: 250px;">
+              <button class="button button-primary" onclick="loadQueues(1)">Tìm kiếm</button>
+              <button class="button button-primary" onclick="openQueueForm()">+ Tạo nhóm máy lẻ</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="history-table" id="queuesTable">
+              <thead>
+                <tr>
+                  <th>Tên nhóm</th>
+                  <th>Số lượng máy lẻ</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="crm-empty" colspan="3">Không có dữ liệu</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="queuePagination"></div>
+        </div>
+
+        <div id="queueFormView" class="card" style="display:none;">
+          <div class="card-heading">
+            <h3 id="queueFormTitle">Thêm nhóm máy lẻ</h3>
+          </div>
+          <input type="hidden" id="q_id">
+
+          <div class="lower-grid">
+            <div class="form-group">
+              <label>Tên nhóm <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="q_name" placeholder="Điền tên nhóm mới">
+            </div>
+            <div class="form-group">
+              <label>Cách tổ chức nhóm máy lẻ <span style="color:var(--danger)">*</span></label>
+              <select id="q_strategy">
+                <option value="all">Đổ tất cả máy lẻ</option>
+                <option value="sequence">Chia tuần tự</option>
+                <option value="random">Ngẫu nhiên</option>
+                <option value="nearest_call">Máy lẻ lâu nhất chưa nhận</option>
+                <option value="called_the_least">Máy lẻ ít cuộc gọi nhất</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="group-transfer-grid">
+            <div>
+              <label>Số máy lẻ trong nhóm <span style="color:var(--danger)">*</span></label>
+              <div class="group-list-box">
+                <ul class="group-member-list" id="queueSelectedMembers"></ul>
+              </div>
+            </div>
+            <div class="group-transfer-actions">
+              <button class="button button-secondary" onclick="addSelectedExtensionToQueue()">« Thêm</button>
+              <button class="button button-danger" onclick="removeSelectedExtensionFromQueue()">Xóa »</button>
+            </div>
+            <div>
+              <label>Danh sách số máy lẻ</label>
+              <div class="group-list-box">
+                <ul class="group-member-list" id="queueAvailableMembers"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions" style="margin-top: 32px; justify-content: flex-end;">
+            <button class="button button-secondary" onclick="closeQueueForm()">Hủy bỏ</button>
+            <button class="button button-primary" onclick="saveQueue()">Lưu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sounds Tab -->
+      <div id="sounds" class="tab-content">
+        <div class="card">
+          <div class="card-heading">
+            <div>
+              <div class="eyebrow">Quản lý Âm thanh</div>
+              <h3>Danh sách File Ghi Âm</h3>
+              <p style="margin-top: 8px; color: var(--muted); font-size: 14px;">Sử dụng ID âm thanh để cấu hình vào kịch
+                bản qua lệnh: <code>Playback(ID_Âm_Thanh)</code></p>
+            </div>
+            <div class="actions">
+              <input type="text" id="soundSearch" placeholder="Tìm kiếm file ghi âm"
+                onkeydown="if(event.key === 'Enter') loadSounds(1)" style="width: 240px;">
+              <button class="button button-secondary" onclick="resetSoundSearch()">Tải lại</button>
+              <button class="button button-primary" onclick="loadSounds(1)">Tìm kiếm</button>
+              <button class="button button-primary" onclick="openSoundModal()">+ Upload File</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="history-table" id="soundsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tên File</th>
+                  <th>Ghi chú</th>
+                  <th>Nghe</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="soundPagination"></div>
+        </div>
+      </div>
+
+      <!-- Call Logs Tab -->
+      <div id="callLogs" class="tab-content">
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-heading">
+            <h3>Bộ lọc tìm kiếm</h3>
+          </div>
+          <div class="filter-grid">
+            <div class="form-group">
+              <label>Hotline</label>
+              <select id="logHotline">
+                <option value="">Tất cả hotline</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Trạng thái</label>
+              <select id="logState">
+                <option value="">Tất cả</option>
+                <option value="success">success</option>
+                <option value="miss">miss</option>
+                <option value="fail">fail</option>
+                <option value="missnoline">missnoline</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hướng gọi</label>
+              <select id="logDirect">
+                <option value="">Tất cả</option>
+                <option value="in">in</option>
+                <option value="out">out</option>
+                <option value="internal">internal</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tìm kiếm</label>
+              <input type="text" id="logKeyword" placeholder="SĐT, máy lẻ hoặc call id"
+                onkeydown="if(event.key === 'Enter') loadCallLogs(1)">
+            </div>
+            <div class="form-group">
+              <label>Từ thời điểm</label>
+              <input type="datetime-local" id="logFromTime">
+            </div>
+            <div class="form-group">
+              <label>Đến thời điểm</label>
+              <input type="datetime-local" id="logToTime">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="button button-primary" onclick="loadCallLogs(1)">Tìm kiếm</button>
+            <button class="button button-secondary" onclick="resetCallLogFilters()">Xóa lọc</button>
+            <span id="callLogTotal" style="margin-left: auto; font-weight: bold; align-self: center;"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-heading">
+            <h3>Lịch sử cuộc gọi</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="history-table" id="callLogsTable">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Hotline</th>
+                  <th>Caller</th>
+                  <th>Callee</th>
+                  <th>Hướng</th>
+                  <th>Trạng thái</th>
+                  <th>Thời lượng</th>
+                  <th>Ghi âm</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="callLogPagination"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div id="dialplanModal" class="modal">
+    <div class="modal-content" style="min-width: 680px;">
+      <h3 id="dialplanModalTitle" style="margin-bottom: 24px;">Thêm kịch bản cuộc gọi mới</h3>
+      <input type="hidden" id="dialplanId">
+
+      <div class="form-group">
+        <label>Tên kịch bản <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="dialplanName" placeholder="Nhập tên kịch bản">
+      </div>
+      <div class="form-group">
+        <label>Nhập nội dung kịch bản (Text hoặc JSON) <span style="color:var(--danger)">*</span></label>
+        <textarea id="rawDialplan" rows="10" style="font-family: monospace;"
+          placeholder="Ví dụ nhập kịch bản theo định dạng Text/JSON"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ghi chú <span style="color:var(--danger)">*</span></label>
+        <textarea id="dialplanNote" rows="3" placeholder="Nhập ghi chú"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Danh sách hotline chạy kịch bản <span style="color:var(--danger)">*</span></label>
+        <div class="multi-select" id="hotlineDropdown">
+          <button type="button" class="multi-select-trigger" onclick="toggleHotlineDropdown()">
+            <span id="hotlineDropdownLabel" class="multi-select-placeholder">Chọn đầu số</span>
+            <span class="multi-select-arrow">⌄</span>
+          </button>
+          <div class="multi-select-menu" id="hotlineSelect"></div>
+        </div>
+        <div class="selected-tags" id="hotlineSelectedTags"></div>
+      </div>
+      <div class="actions" style="justify-content:flex-end; margin-top: 24px;">
+        <button onclick="closeModal('dialplanModal')" class="button button-secondary">Hủy bỏ</button>
+        <button onclick="saveDialplan()" class="button button-primary">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="soundModal" class="modal">
+    <div class="modal-content">
+      <h3 id="soundModalTitle" style="margin-bottom: 24px;">Upload Âm thanh</h3>
+      <input type="hidden" id="s_id">
+
+      <div class="form-group"><label>Tên âm thanh</label><input type="text" id="s_name"></div>
+      <div class="form-group"><label>Mô tả (commit)</label><input type="text" id="s_commit" placeholder="Tuỳ chọn">
+      </div>
+
+      <div class="dropzone" onclick="document.getElementById('s_file').click()">
+        <div class="upload-icon">⬆️</div>
+        <div>
+          <strong>Click để chọn file</strong>
+          <span style="display:block; font-size: 12px; margin-top: 4px;">Hỗ trợ .mp3, .wav</span>
+        </div>
+        <input type="file" id="s_file" accept=".mp3,.wav"
+          onchange="document.getElementById('file-selected').innerText = this.files[0] ? this.files[0].name : ''">
+        <div id="file-selected" style="color: var(--blue); font-weight: bold; margin-top: 8px;"></div>
+      </div>
+
+      <div class="actions" style="margin-top: 24px;">
+        <button onclick="saveSound()" class="button button-primary" id="soundSubmitBtn" style="flex:1;">Upload</button>
+        <button onclick="closeModal('soundModal')" class="button button-secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="callLogModal" class="modal">
+    <div class="modal-content" style="min-width: 600px;">
+      <h3 style="margin-bottom: 24px;">Chi tiết cuộc gọi</h3>
+      <pre id="callLogDetail" class="pre-box"></pre>
+      <div class="actions" style="margin-top: 24px; justify-content: flex-end;">
+        <button onclick="closeModal('callLogModal')" class="button button-secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="./app.js"></script>
+</body>
+
+</html>
