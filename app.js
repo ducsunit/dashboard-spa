@@ -863,7 +863,7 @@ async function loadSounds(page = currentSoundPage) {
             </td>
             <td>
                 <div class="row-actions">
-                    <button class="button-sm secondary" onclick="downloadSound('${encodeId(soundId)}')">Tải</button>
+
                     <button class="button-sm primary" onclick="editSound('${encodeId(soundId)}')">Sửa</button>
                     <button class="button-sm danger" onclick="deleteSound('${encodeId(soundId)}')">Xóa</button>
                 </div>
@@ -940,19 +940,6 @@ async function deleteSound(encodedId) {
 
     const res = await apiRequest(`/v1/api/users/sounds/${soundId}`, { method: 'DELETE' });
     if (res) { showToast(res.message); loadSounds(); }
-}
-
-function downloadSound(encodedId) {
-    const soundId = decodeURIComponent(encodedId);
-    const sound = soundCache.find(item => String(item.id) === String(soundId));
-    if (!sound) return showToast("Không tìm thấy file ghi âm", false);
-
-    if (sound.url_storage) {
-        window.open(sound.url_storage, '_blank');
-        return;
-    }
-
-    showToast("File chưa được đồng bộ lên storage, không thể tải", false);
 }
 
 // ================= CALL LOGS =================
