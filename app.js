@@ -513,9 +513,15 @@ function renderExtensionsTable(page = currentExtensionPage) {
     const pageItems = filtered.slice(start, start + DEFAULT_PAGE_SIZE);
     pageItems.forEach(extension => {
         const extensionNumber = extension.extension_number || extension;
+        const extensionId = extension.id || extensionNumber;
         tbody.innerHTML += `<tr>
             <td><b>${escapeHtml(extensionNumber)}</b></td>
-            <td></td>
+            <td>
+                <div class="actions" style="justify-content: flex-start; gap: 8px;">
+                    <button class="button button-secondary" onclick="openExtensionEditView('${extensionId}')">Sửa</button>
+                    <button class="button button-danger" onclick="deleteExtension('${extensionId}')">Xóa</button>
+                </div>
+            </td>
         </tr>`;
     });
     renderPagination('extensionPagination', currentExtensionPage, total, DEFAULT_PAGE_SIZE, 'renderExtensionsTable');
@@ -564,6 +570,71 @@ async function saveExtension() {
     });
     if (res) {
         showToast(res.message || 'Đăng ký máy lẻ thành công', true);
+        await loadExtensions();
+    }
+}
+
+async function deleteExtension(extensionId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa máy lẻ này không?')) return;
+    const res = await apiRequest(`/v1/api/extensions/${extensionId}`, { method: 'DELETE' });
+    if (res) {
+        showToast('Xóa máy lẻ thành công', true);
+        await loadExtensions();
+    }
+}
+
+async function openExtensionEditView(extensionId) {
+    const res = await apiRequest(`/v1/api/extensions/${extensionId}`);
+    if (!res) return;
+    
+    document.getElementById('editExtensionId').value = extensionId;
+    document.getElementById('editExtensionPassword').value = res.extension_password || '';
+    document.getElementById('editExtensionMonitor').value = res.extension_monitor || '';
+    
+    const permit = res.extension_call_permit || {};
+    document.getElementById('permit_internal').checked = !!permit.internal;
+    document.getElementById('permit_inbound').checked = !!permit.inbound;
+    document.getElementById('permit_outbound').checked = !!permit.outbound;
+    document.getElementById('permit_mobile').checked = !!permit.mobile;
+    document.getElementById('permit_phone').checked = !!permit.phone;
+    document.getElementById('permit_internation').checked = !!permit.internation;
+
+    openModal('extensionEditModal');
+}
+
+async function updateExtension() {
+    const extensionId = document.getElementById('editExtensionId').value;
+    const password = document.getElementById('editExtensionPassword').value;
+    const monitor = document.getElementById('editExtensionMonitor').value;
+    
+    const permit = {
+        internal: document.getElementById('permit_internal').checked,
+        inbound: document.getElementById('permit_inbound').checked,
+        outbound: document.getElementById('permit_outbound').checked,
+        mobile: document.getElementById('permit_mobile').checked,
+        phone: document.getElementById('permit_phone').checked,
+        internation: document.getElementById('permit_internation').checked
+    };
+
+    const payload = {
+        extension_call_permit: permit
+    };
+    
+    if (password) {
+        payload.extension_password = password;
+    }
+    if (monitor) {
+        payload.extension_monitor = monitor;
+    }
+
+    const res = await apiRequest(`/v1/api/extensions/${extensionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+    });
+    
+    if (res) {
+        showToast('Cập nhật máy lẻ thành công', true);
+        closeModal('extensionEditModal');
         await loadExtensions();
     }
 }
