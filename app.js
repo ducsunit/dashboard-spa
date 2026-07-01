@@ -1,5 +1,5 @@
 const API_BASE_URL = "https://api-stagging-callcenter.bizflycloud.vn"; // adjust to your local/staging if needed
-let currentApiKey = localStorage.getItem('api_token') || '';
+let currentApiKey = '';
 let queueCache = [];
 let soundCache = [];
 let dialplanCache = [];
@@ -15,16 +15,19 @@ let currentSoundPage = 1;
 let currentCallLogPage = 1;
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('apiKey').value = currentApiKey;
-    if (currentApiKey) {
-        loadHotlinesConfig();
-    }
+    localStorage.removeItem('api_token');
+    sessionStorage.removeItem('api_token');
+    document.getElementById('apiKey').value = '';
 });
 
 function saveApiKey() {
-    currentApiKey = document.getElementById('apiKey').value;
-    localStorage.setItem('api_token', currentApiKey);
-    showToast("Đã lưu API Key", true);
+    currentApiKey = document.getElementById('apiKey').value.trim();
+    if (!currentApiKey) {
+        showToast("Vui lòng nhập API Key", false);
+        return;
+    }
+
+    showToast("Đã dùng API Key cho phiên hiện tại", true);
     loadHotlinesConfig();
 }
 
